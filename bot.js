@@ -69,8 +69,12 @@ bot.on('message', msg => {
 
   case "new":
 
+  if (msg.channel != ticketsChannel) {
+    return;
+  }
+
   if (setTickets == false) {
-      msg.channel.send("I have nowhere to send out the tickets! An admin needs to do so by saying `-set` in staff channel.")
+      msg.channel.send("There is no ticket channel right now! An admin need to create an input channel by doing `set` in a channel!")
       return;
     }
 
@@ -113,14 +117,14 @@ bot.on('message', msg => {
     setTickets = true
 
     ticketsChannel = msg.channel
-    msg.channel.send("Tickets will now appear in this channel.")
+    msg.channel.send("This channel will now be the ticket input channel!")
 
     if (setLogs == false) {return;}
 
     var embedSetLog = new Discord.RichEmbed()
     .setAuthor(msg.author.username + "#"+ msg.author.discriminator, msg.author.avatarURL)
     .setFooter(dformat)
-    .setTitle(`Set output channel in #${ticketsChannel.name}`)
+    .setTitle(`Set input channel in #${ticketsChannel.name}`)
     .setDescription(msg.content)
     .setColor(0xFFFF00)
 
@@ -136,7 +140,7 @@ bot.on('message', msg => {
       var countt = 0
       while (countt != tickets.length) {
         var countt = countt + 1
-      ticketsChannel.send(`${countt}. ` + tickets[countt-1])
+      msg.channel.send(`${countt}. ` + tickets[countt-1])
     }
     break;
 
