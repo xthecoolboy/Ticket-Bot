@@ -42,8 +42,10 @@ var d = new Date,
     ('0'+d.getMinutes()).slice(-2),
     ('0'+d.getSeconds()).slice(-2)].join(':');
 
+var logsChannel = ""
 var ticketsChannel = ""
 var setTickets = false
+var setLogs = false
 var tickets = []
 // _____________________________________________________________________________
 
@@ -89,13 +91,41 @@ bot.on('message', msg => {
     ticketsChannel.send(embedTicket)
 
     tickets.push(`${msg.author.tag}: ${msg.content}`)
+
+    if (setLogs == false) {return;}
+
+    var embedNewLog = new Discord.RichEmbed()
+    .setTitle('New Ticket')
+    .setAuthor(msg.author.username + "#"+ msg.author.discriminator, msg.author.avatarURL)
+    .setDescription(msg.content)
+    .setFooter(dformat)
+    .setColor(0x008000)
+
+    logsChannel.send(embedNewLog)
+
     break;
 
     case "set":
+    if (!msg.member.hasPermission('MANAGE_MESSAGES')) {
+      msg.channel.send('You do not have permission to do this!')
+      return;
+    }
     setTickets = true
 
     ticketsChannel = msg.channel
     msg.channel.send("Tickets will now appear in this channel.")
+
+    if (setLogs == false) {return;}
+
+    var embedSetLog = new Discord.RichEmbed()
+    .setAuthor(msg.author.username + "#"+ msg.author.discriminator, msg.author.avatarURL)
+    .setFooter(dformat)
+    .setTitle(`Set output channel in #${ticketsChannel.name}`)
+    .setDescription(msg.content)
+    .setColor(0xFFFF00)
+
+    logsChannel.send(embedSetLog)
+
     break;
 
     case "tickets":
@@ -121,7 +151,8 @@ bot.on('message', msg => {
          .addField('new {describe what happened}', 'Create a ticket')
          .addField('tickets', 'View all ongoing tickets')
          .addField('close {ticket number}', 'Remove a ticket')
-         .addField('clear', 'Clear all tickets')
+         .addField('clearall', 'Clear all tickets')
+         .addField('log', 'Sets the ticket logging output channel')
 
          msg.channel.send(embedHelp)
 
@@ -144,26 +175,58 @@ bot.on('message', msg => {
          }
          var intTicket = parseInt(currentTicket)
          var intTicket = intTicket - 1
+         var ticketString = tickets[intTicket]
 
          tickets.splice(intTicket, 1);
-         msg.channel.send(`Removed ticket #${currentTicket}`)
+         msg.channel.send(`Removed ticket #${currentTicket} - ${ticketString}`)
+
+         if (setLogs == false) {return;}
+
+         var embedNewLog = new Discord.RichEmbed()
+         .setTitle('Cleared a ticket')
+         .setAuthor(msg.author.username + "#"+ msg.author.discriminator, msg.author.avatarURL)
+         .setDescription(msg.content)
+         .addField('Ticket Cleared:', `${ticketString}`)
+         .setFooter(dformat)
+         .setColor(0xFF0000)
+
+         logsChannel.send(embedNewLog)
 
          break;
 
-         case "clear":
+         case "clearall":
 
          if (!msg.member.hasPermission('MANAGE_MESSAGES')) {
            msg.channel.send('You do not have permission to do this!')
            return;
          }
-
+         var logsRemoved = tickets.length
          tickets = [];
          msg.channel.send("Cleared all tickets")
 
+         if (setLogs == false) {return;}
+
+         var embedClearLog = new Discord.RichEmbed()
+         .setAuthor(msg.author.username + "#"+ msg.author.discriminator, msg.author.avatarURL)
+         .setFooter(dformat)
+         .setTitle(`Cleared Logs (${logsRemoved} items)`)
+         .setDescription(msg.content)
+         .setColor(0xFFA500)
+
+         logsChannel.send(embedClearLog)
+
          break;
 
-   msg.channel.send(embedHelp);
-    break;
+         case "log":
+         if (!msg.member.hasPermission('MANAGE_MESSAGES')) {
+           msg.channel.send('You do not have permission to do this!')
+           return;
+         }
+         setLogs = true
+         logsChannel = msg.channel
+
+         msg.channel.send('Ticket logs will now appear in this channel')
+         break;
   }
 })
 
