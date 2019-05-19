@@ -96,7 +96,7 @@ bot.on('message', msg => {
 
     tickets.push(`${msg.author.tag}: ${msg.content}`)
 
-    if (setLogs == false) {return;}
+    if (setLogs == false) {break;}
 
     var embedNewLog = new Discord.RichEmbed()
     .setTitle('New Ticket')
@@ -119,7 +119,7 @@ bot.on('message', msg => {
     ticketsChannel = msg.channel
     msg.channel.send("This channel will now be the ticket input channel!")
 
-    if (setLogs == false) {return;}
+    if (setLogs == false) {break;}
 
     var embedSetLog = new Discord.RichEmbed()
     .setAuthor(msg.author.username + "#"+ msg.author.discriminator, msg.author.avatarURL)
@@ -184,7 +184,7 @@ bot.on('message', msg => {
          tickets.splice(intTicket, 1);
          msg.channel.send(`Removed ticket #${currentTicket} - ${ticketString}`)
 
-         if (setLogs == false) {return;}
+         if (setLogs == false) {break;}
 
          var embedNewLog = new Discord.RichEmbed()
          .setTitle('Cleared a ticket')
@@ -208,7 +208,7 @@ bot.on('message', msg => {
          tickets = [];
          msg.channel.send("Cleared all tickets")
 
-         if (setLogs == false) {return;}
+         if (setLogs == false) {break;}
 
          var embedClearLog = new Discord.RichEmbed()
          .setAuthor(msg.author.username + "#"+ msg.author.discriminator, msg.author.avatarURL)
