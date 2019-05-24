@@ -49,6 +49,7 @@ var setLogs = false
 var tickets = []
 // _____________________________________________________________________________
 
+
 bot.on('message', msg => {
     if (msg.author.equals(bot.user)) return;
     if (!msg.content.startsWith(prefix)) return;
@@ -69,32 +70,43 @@ bot.on('message', msg => {
 
   case "new":
 
-  if (msg.channel != ticketsChannel) {
-    return;
-  }
-
   if (setTickets == false) {
-      msg.channel.send("There is no ticket channel right now! An admin need to create an input channel by doing `set` in a channel!")
+      msg.channel.send("There is no ticket channel right now! An admin needs to create an input channel by doing `set` in a channel!")
       return;
     }
 
-    if (!args[1]) {
+    if (msg.channel != ticketsChannel) {
+      return;
+    }
+
+  if (!args[1]) {
       msg.channel.send("Please submit a valid ticket.")
       return;
     }
 
-    msg.channel.send("Ticket Created")
+      msg.attachments.forEach(attachment => {
+        return urll = attachment.url;
+        return urll
+      })
 
-    var embedTicket = new Discord.RichEmbed()
+  if (msg.attachments.size > 0) {
+    var messageArr = {content:msg.content, image:urll, age:dformat, author:msg.author.tag, authorURL:msg.author.avatarURL, msgURL:msg.url, attachmentSize:msg.attachments.size}
+    tickets.push(messageArr)
+  }else{
+    var messageArr = {content:msg.content, age:dformat, author:`${msg.author.username}#${msg.author.discriminator}`, authorURL:msg.author.avatarURL, msgURL:msg.url}
+    tickets.push(messageArr)
+  }
+
+    msg.channel.send(`Ticket Created at #${tickets.length}`)
+
+/*    var embedTicket = new Discord.RichEmbed()
     .setTitle('New Ticket')
     .setAuthor(msg.author.username + "#"+ msg.author.discriminator, msg.author.avatarURL)
     .setDescription(msg.content)
     .setFooter(dformat)
     .setColor(getRandomColor())
 
-    ticketsChannel.send(embedTicket)
-
-    tickets.push(`${msg.author.tag}: ${msg.content}`)
+    ticketsChannel.send(embedTicket)*/
 
     if (setLogs == false) {break;}
 
@@ -137,11 +149,39 @@ bot.on('message', msg => {
         msg.channel.send("There are no open tickets currently.")
         return;
       }
-      var countt = 0
+    /*  var countt = 0
       while (countt != tickets.length) {
         var countt = countt + 1
       msg.channel.send(`${countt}. ` + tickets[countt-1])
-    }
+    }*/
+    var i = 0
+
+  while (i != tickets.length) {
+    if (tickets[i].attachmentSize > 0) {
+    var embedTicketArrayText = new Discord.RichEmbed()
+       .setTitle(`Ticket #${i}`)
+       .setAuthor(tickets[i].author, tickets[i].authorURL)
+       .setDescription(tickets[i].content)
+       .addField('Original', `[Jump!](${tickets[i].msgURL})`)
+       .setImage(tickets[i].image)
+       .setFooter(`Ticket Created at ${tickets[i].age}`)
+       .setColor(0xff0000)
+
+       ticketsChannel.send(embedTicketArrayText)
+     }else{
+       var embedTicketArrayImage = new Discord.RichEmbed()
+          .setTitle(`Ticket #${i + 1}`)
+          .setAuthor(tickets[i].author, tickets[i].authorURL)
+          .setDescription(tickets[i].content)
+          .addField('Original', `[Jump!](${tickets[i].msgURL})`)
+          .setFooter(`Ticket Created at ${tickets[i].age}`)
+          .setColor(0xff0000)
+
+          ticketsChannel.send(embedTicketArrayImage)
+        }
+       i = i + 1
+     }
+
     break;
 
     case "help":
@@ -173,13 +213,15 @@ bot.on('message', msg => {
            return;
          }
 
-         if(!typeof currentTicket==='number' && (currentTicket%1)===0) {
+         if(!typeof currentTicket==='number' && !(currentTicket%1)===0) {
            msg.channel.send("Argument is not an integer")
            return;
          }
+
+         try {
          var intTicket = parseInt(currentTicket)
          var intTicket = intTicket - 1
-         var ticketString = tickets[intTicket]
+         var ticketString = tickets[intTicket].content
 
          tickets.splice(intTicket, 1);
          msg.channel.send(`Removed ticket #${currentTicket} - ${ticketString}`)
@@ -195,7 +237,11 @@ bot.on('message', msg => {
          .setColor(0xFF0000)
 
          logsChannel.send(embedNewLog)
+       }
 
+       catch (error){
+         console.error(error)
+       }
          break;
 
          case "clearall":
