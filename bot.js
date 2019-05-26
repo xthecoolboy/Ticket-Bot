@@ -81,7 +81,7 @@ bot.on('message', msg => {
     }
 
   if (!args[1]) {
-      msg.channel.send("Please submit a valid ticket.")
+      msg.channel.send("Please submit a valid ticket. Describe what happened.")
       return;
     }
 
@@ -91,14 +91,14 @@ bot.on('message', msg => {
       })
 
   if (msg.attachments.size > 0) {
-    var messageArr = {content:msg.content, image:urll, age:dformat, author:`${msg.author}`, authorURL:msg.author.avatarURL, msgURL:msg.url, attachmentSize:msg.attachments.size, authorID: msg.author.id, authorTag:msg.author.username + "#"+ msg.author.discriminator}
+    var messageArr = {content:msg.content, image:urll, age:dformat, author:msg.author, authorURL:msg.author.avatarURL, msgURL:msg.url, attachmentSize:msg.attachments.size, authorTag:msg.author.username + "#"+ msg.author.discriminator}
     tickets.push(messageArr)
   }else{
-    var messageArr = {content:msg.content, age:dformat, author:`${msg.author}`, authorURL:msg.author.avatarURL, msgURL:msg.url, authorID: msg.author.id, authorTag:msg.author.username + "#"+ msg.author.discriminator}
+    var messageArr = {content:msg.content, age:dformat, author:msg.author, authorURL:msg.author.avatarURL, msgURL:msg.url, authorTag:msg.author.username + "#"+ msg.author.discriminator}
     tickets.push(messageArr)
   }
 
-    msg.guild.createChannel(`ticket-support-${(tickets.slice(-1)[0]).authorTag}`, {type: 'text'})
+    msg.guild.createChannel(`${tickets.length}-ticket-${(tickets.slice(-1)[0]).authorTag}`, {type: 'text'})
     var latestChannel = msg.guild.channels.last()
     msgAuthor = msg.author
     msg.delete()
@@ -125,7 +125,7 @@ bot.on('message', msg => {
     setTickets = true
 
     ticketsChannel = msg.channel
-    msg.channel.send("This channel will now be the ticket input channel!")
+    msg.channel.send("This channel is now the ticket input channel!")
 
     if (setLogs == false) {break;}
 
@@ -158,14 +158,14 @@ bot.on('message', msg => {
     if (tickets[i].attachmentSize > 0) {
     var embedTicketArrayText = new Discord.RichEmbed()
        .setTitle(`Ticket #${i}`)
-       .setAuthor(tickets[i].author.tag, tickets[i].authorURL)
+       .setAuthor(tickets[i].authorTag, tickets[i].authorURL)
        .setDescription(tickets[i].content)
       // .addField('Original', `[Jump!](${tickets[i].msgURL})`)
        .setImage(tickets[i].image)
        .setFooter(`Ticket Created at ${tickets[i].age}`)
        .setColor(0xff0000)
 
-       ticketsChannel.send(embedTicketArrayText)
+       msg.channel.send(embedTicketArrayText)
      }else{
        var embedTicketArrayImage = new Discord.RichEmbed()
           .setTitle(`Ticket #${i + 1}`)
@@ -184,7 +184,7 @@ bot.on('message', msg => {
 
     case "help":
     var embedHelp = new Discord.RichEmbed()
-         .setTitle('Ping')
+         .setTitle('ping')
          .setAuthor('Information')
          .setColor(0xDF1212)
          .setDescription('Returns your ping')
@@ -192,8 +192,8 @@ bot.on('message', msg => {
          .addField('set', 'Sets the ticket output channel')
          .addField('new {describe what happened}', 'Create a ticket')
          .addField('tickets', 'View all ongoing tickets')
-         .addField('close {ticket number}', 'Remove a ticket')
-         .addField('clearall', 'Clear all tickets')
+         .addField('close {ticket number} OR close in the channel you want to close', 'Remove a ticket')
+      //   .addField('clearall', 'Clear all tickets')
          .addField('log', 'Sets the ticket logging output channel')
 
          msg.channel.send(embedHelp)
@@ -207,9 +207,24 @@ bot.on('message', msg => {
          }
 
          if (!args[1]) {
-           msg.channel.send("Please enter a valid ticket number")
-           return;
+           if (tickets[tickets.length-1] == 0) {return;}
+           var closeChan = msg.channel.name.substr(1);
+           var ticketNum = msg.channel.name.charAt(0);
+           if (msg.channel.type == "text" && closeChan.startsWith("-ticket-")) {
+             msg.channel.delete("Ticket closed")
+             var intTicket = parseInt(ticketNum)
+             var intTicket = intTicket - 1
+             msg.channel.send(`Removed ticket #${currentTicket} - ${ticketString}`)
+             tickets.splice(intTicket, 1);
+
+             var h = 0
+              while (h != tickets.length) {
+                h = h + 1
+                tickets[h-1].cChannel.edit({ name: `${h}-ticket-${tickets[h-1].authorTag}` })
+             }
          }
+         break;
+       }
 
          if(!typeof currentTicket==='number' && !(currentTicket%1)===0) {
            msg.channel.send("Argument is not an integer")
@@ -221,8 +236,15 @@ bot.on('message', msg => {
          var intTicket = intTicket - 1
          var ticketString = tickets[intTicket].content
 
+         tickets[intTicket].cChannel.delete()
+
          tickets.splice(intTicket, 1);
          msg.channel.send(`Removed ticket #${currentTicket} - ${ticketString}`)
+         var h = 0
+          while (h != tickets.length) {
+            h = h + 1
+            tickets[h-1].cChannel.edit({ name: `${h}-ticket-${tickets[h-1].authorTag}` })
+         }
 
          if (setLogs == false) {break;}
 
@@ -242,7 +264,7 @@ bot.on('message', msg => {
        }
          break;
 
-         case "clearall":
+        /* case "clearall":
 
          if (!msg.member.hasPermission('MANAGE_MESSAGES')) {
            msg.channel.send('You do not have permission to do this!')
@@ -263,7 +285,7 @@ bot.on('message', msg => {
 
          logsChannel.send(embedClearLog)
 
-         break;
+         break;*/
 
          case "log":
          if (!msg.member.hasPermission('MANAGE_MESSAGES')) {
@@ -279,8 +301,10 @@ bot.on('message', msg => {
 })
 
 bot.on('channelCreate', channel => {
+  var closeChan = channel.name.substr(1);
+  if (!closeChan.startsWith("-ticket-")) {return;}
 
-  if (!channel.name.startsWith("ticket-support-")) {return;}
+  tickets[tickets.length-1].cChannel = channel
 
   channel.overwritePermissions(channel.guild.roles.find(role => role.name === "@everyone"), {
      'VIEW_CHANNEL': false,                   'SEND_MESSAGES': false
@@ -293,11 +317,11 @@ bot.on('channelCreate', channel => {
       'VIEW_CHANNEL': true,                   'SEND_MESSAGES': true,
   });
 
-channel.send(`<@${(tickets[tickets.length-1]).authorID}> has opened a new ticket with the following content:`)
+channel.send(`<@${(tickets[tickets.length-1]).author.id}> has opened a new ticket with the following content:`)
 
 if (tickets[tickets.length-1].attachmentSize > 0) {
 var embedTicketArrayText = new Discord.RichEmbed()
-   .setTitle(`Ticket #${tickets.length}`)
+   .setTitle(`Ticket`)
    .setAuthor(tickets[tickets.length-1].authorTag, tickets[tickets.length-1].authorURL)
    .setDescription(tickets[tickets.length-1].content)
 //   .addField('Original', `[Jump!](${tickets[tickets.length-1].msgURL})`)
@@ -308,7 +332,7 @@ var embedTicketArrayText = new Discord.RichEmbed()
    channel.send(embedTicketArrayText)
  }else{
    var embedTicketArrayImage = new Discord.RichEmbed()
-      .setTitle(`Ticket #${tickets.length}`)
+      .setTitle(`Ticket`)
       .setAuthor(tickets[tickets.length-1].authorTag, tickets[tickets.length-1].authorURL)
       .setDescription(tickets[tickets.length-1].content)
     //  .addField('Original', `[Jump!](${tickets[tickets.length-1].msgURL})`)
@@ -320,7 +344,7 @@ var embedTicketArrayText = new Discord.RichEmbed()
 })
 
 var twentyMins = 1000 * 60 * 20 // stops heroku from shutting down every 30 minutes
-setInterval(function(){ // repeat this every 20 minutes
+setInterval(function(){
   var milliseconds = (new Date).getTime();
     console.log(milliseconds);
 }, twentyMins)
