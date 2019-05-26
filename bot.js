@@ -47,8 +47,9 @@ var ticketsChannel = ""
 var setTickets = false
 var setLogs = false
 var tickets = []
-// _____________________________________________________________________________
+var msgAuthor = ""
 
+// _____________________________________________________________________________
 
 bot.on('message', msg => {
     if (msg.author.equals(bot.user)) return;
@@ -90,25 +91,17 @@ bot.on('message', msg => {
       })
 
   if (msg.attachments.size > 0) {
-    var messageArr = {content:msg.content, image:urll, age:dformat, author:msg.author.tag, authorURL:msg.author.avatarURL, msgURL:msg.url, attachmentSize:msg.attachments.size}
+    var messageArr = {content:msg.content, image:urll, age:dformat, author:`${msg.author}`, authorURL:msg.author.avatarURL, msgURL:msg.url, attachmentSize:msg.attachments.size, authorID: msg.author.id, authorTag:msg.author.username + "#"+ msg.author.discriminator}
     tickets.push(messageArr)
   }else{
-    var messageArr = {content:msg.content, age:dformat, author:`${msg.author.username}#${msg.author.discriminator}`, authorURL:msg.author.avatarURL, msgURL:msg.url}
+    var messageArr = {content:msg.content, age:dformat, author:`${msg.author}`, authorURL:msg.author.avatarURL, msgURL:msg.url, authorID: msg.author.id, authorTag:msg.author.username + "#"+ msg.author.discriminator}
     tickets.push(messageArr)
   }
 
-    msg.channel.send(`Ticket Created at #${tickets.length}`)
-
-/*    var embedTicket = new Discord.RichEmbed()
-    .setTitle('New Ticket')
-    .setAuthor(msg.author.username + "#"+ msg.author.discriminator, msg.author.avatarURL)
-    .setDescription(msg.content)
-    .setFooter(dformat)
-    .setColor(getRandomColor())
-
-    ticketsChannel.send(embedTicket)*/
-
-    if (setLogs == false) {break;}
+    msg.guild.createChannel(`ticket-support-${(tickets.slice(-1)[0]).authorTag}`, {type: 'text'})
+    var latestChannel = msg.guild.channels.last()
+    msgAuthor = msg.author
+    msg.delete()
 
     var embedNewLog = new Discord.RichEmbed()
     .setTitle('New Ticket')
@@ -117,6 +110,9 @@ bot.on('message', msg => {
     .setFooter(dformat)
     .setColor(0x008000)
 
+  //  cChannel.send(embedNewLog)
+
+    if (setLogs == false) {break;}
     logsChannel.send(embedNewLog)
 
     break;
@@ -145,24 +141,26 @@ bot.on('message', msg => {
     break;
 
     case "tickets":
+
+    if (!msg.member.hasPermission('MANAGE_MESSAGES')) {
+      msg.channel.send('You do not have permission to do this!')
+      return;
+    }
+
       if (tickets.length < 1) {
         msg.channel.send("There are no open tickets currently.")
         return;
       }
-    /*  var countt = 0
-      while (countt != tickets.length) {
-        var countt = countt + 1
-      msg.channel.send(`${countt}. ` + tickets[countt-1])
-    }*/
+
     var i = 0
 
   while (i != tickets.length) {
     if (tickets[i].attachmentSize > 0) {
     var embedTicketArrayText = new Discord.RichEmbed()
        .setTitle(`Ticket #${i}`)
-       .setAuthor(tickets[i].author, tickets[i].authorURL)
+       .setAuthor(tickets[i].author.tag, tickets[i].authorURL)
        .setDescription(tickets[i].content)
-       .addField('Original', `[Jump!](${tickets[i].msgURL})`)
+      // .addField('Original', `[Jump!](${tickets[i].msgURL})`)
        .setImage(tickets[i].image)
        .setFooter(`Ticket Created at ${tickets[i].age}`)
        .setColor(0xff0000)
@@ -171,9 +169,9 @@ bot.on('message', msg => {
      }else{
        var embedTicketArrayImage = new Discord.RichEmbed()
           .setTitle(`Ticket #${i + 1}`)
-          .setAuthor(tickets[i].author, tickets[i].authorURL)
+          .setAuthor(tickets[i].author.tag, tickets[i].authorURL)
           .setDescription(tickets[i].content)
-          .addField('Original', `[Jump!](${tickets[i].msgURL})`)
+    //      .addField('Original', `[Jump!](${tickets[i].msgURL})`)
           .setFooter(`Ticket Created at ${tickets[i].age}`)
           .setColor(0xff0000)
 
@@ -279,5 +277,52 @@ bot.on('message', msg => {
          break;
   }
 })
+
+bot.on('channelCreate', channel => {
+
+  if (!channel.name.startsWith("ticket-support-")) {return;}
+
+  channel.overwritePermissions(channel.guild.roles.find(role => role.name === "@everyone"), {
+     'VIEW_CHANNEL': false,                   'SEND_MESSAGES': false
+  });
+  channel.overwritePermissions(channel.guild.roles.find(role => role.name === "Support Team"), {
+      'VIEW_CHANNEL': true,                   'SEND_MESSAGES': true,
+  });
+
+  channel.overwritePermissions(msgAuthor, {
+      'VIEW_CHANNEL': true,                   'SEND_MESSAGES': true,
+  });
+
+channel.send(`<@${(tickets[tickets.length-1]).authorID}> has opened a new ticket with the following content:`)
+
+if (tickets[tickets.length-1].attachmentSize > 0) {
+var embedTicketArrayText = new Discord.RichEmbed()
+   .setTitle(`Ticket #${tickets.length}`)
+   .setAuthor(tickets[tickets.length-1].authorTag, tickets[tickets.length-1].authorURL)
+   .setDescription(tickets[tickets.length-1].content)
+//   .addField('Original', `[Jump!](${tickets[tickets.length-1].msgURL})`)
+   .setImage(tickets[tickets.length-1].image)
+   .setFooter(`Ticket Created at ${tickets[tickets.length-1].age}`)
+   .setColor(0xff0000)
+
+   channel.send(embedTicketArrayText)
+ }else{
+   var embedTicketArrayImage = new Discord.RichEmbed()
+      .setTitle(`Ticket #${tickets.length}`)
+      .setAuthor(tickets[tickets.length-1].authorTag, tickets[tickets.length-1].authorURL)
+      .setDescription(tickets[tickets.length-1].content)
+    //  .addField('Original', `[Jump!](${tickets[tickets.length-1].msgURL})`)
+      .setFooter(`Ticket Created at ${tickets[tickets.length-1].age}`)
+      .setColor(0xff0000)
+
+      channel.send(embedTicketArrayImage)
+    }
+})
+
+var twentyMins = 1000 * 60 * 20 // stops heroku from shutting down every 30 minutes
+setInterval(function(){ // repeat this every 20 minutes
+  var milliseconds = (new Date).getTime();
+    console.log(milliseconds);
+}, twentyMins)
 
 bot.login(process.env.BOT_TOKEN);
