@@ -48,6 +48,8 @@ var setTickets = false
 var setLogs = false
 var tickets = []
 var msgAuthor = ""
+const talkedRecently = new Set();
+
 
 // _____________________________________________________________________________
 
@@ -70,6 +72,19 @@ bot.on('message', msg => {
 	break;
 
   case "new":
+
+  if (talkedRecently.has(msg.author.id)) {
+      msg.channel.send("Wait 10 minutes before opening up a new ticket - " + msg.author)
+    .then(msg => {
+    msg.delete(10000)
+  })
+  .catch(console.log("Message did not send"));
+   } else {
+
+     talkedRecently.add(msg.author.id);
+     setTimeout(() => {
+       talkedRecently.delete(msg.author.id);
+     }, 600000);
 
   if (setTickets == false) {
       msg.channel.send("There is no ticket channel right now! An admin needs to create an input channel by doing `set` in a channel!")
@@ -111,6 +126,8 @@ bot.on('message', msg => {
     .setColor(0x008000)
 
   //  cChannel.send(embedNewLog)
+
+}
 
     if (setLogs == false) {break;}
     logsChannel.send(embedNewLog)
@@ -193,7 +210,7 @@ bot.on('message', msg => {
          .addField('new {describe what happened}', 'Create a ticket')
          .addField('tickets', 'View all ongoing tickets')
          .addField('close {ticket number} OR close in the channel you want to close', 'Remove a ticket')
-      //   .addField('clearall', 'Clear all tickets')
+         .addField('clearall', 'Clear all tickets')
          .addField('log', 'Sets the ticket logging output channel')
 
          msg.channel.send(embedHelp)
@@ -206,25 +223,48 @@ bot.on('message', msg => {
            return;
          }
 
+         var closeChan = ""
+         var ticketNum = ""
+         var ticketNumCheck = msg.channel.name.charAt(1);
+
          if (!args[1]) {
            if (tickets[tickets.length-1] == 0) {return;}
-           var closeChan = msg.channel.name.substr(1);
-           var ticketNum = msg.channel.name.charAt(0);
-           if (msg.channel.type == "text" && closeChan.startsWith("-ticket-")) {
-             msg.channel.delete("Ticket closed")
-             var intTicket = parseInt(ticketNum)
-             var intTicket = intTicket - 1
-             msg.channel.send(`Removed ticket #${currentTicket} - ${ticketString}`)
-             tickets.splice(intTicket, 1);
 
-             var h = 0
-              while (h != tickets.length) {
-                h = h + 1
-                tickets[h-1].cChannel.edit({ name: `${h}-ticket-${tickets[h-1].authorTag}` })
-             }
-         }
-         break;
+           if (ticketNumCheck != "-") {
+             closeChan = msg.channel.name.slice(2);
+             ticketNum = msg.channel.name.slice(2);
+
+             if (msg.channel.type == "text" && closeChan.startsWith("-ticket-")) {
+               msg.channel.delete("Ticket closed")
+               var intTicket = parseInt(ticketNum)
+               var intTicket = intTicket - 1
+               tickets.splice(intTicket, 1);
+
+               var h = 0
+               while (h != tickets.length) {
+                 h = h + 1
+                 tickets[h-1].cChannel.edit({ name: `${h}-ticket-${tickets[h-1].authorTag}` })
+              }
+           }
+
+           }else{
+             closeChan = msg.channel.name.substr(1);
+             ticketNum = msg.channel.name.charAt(0);
+             if (msg.channel.type == "text" && closeChan.startsWith("-ticket-")) {
+               msg.channel.delete("Ticket closed")
+               var intTicket = parseInt(ticketNum)
+               var intTicket = intTicket - 1
+               tickets.splice(intTicket, 1);
+
+               var h = 0
+               while (h != tickets.length) {
+                 h = h + 1
+                 tickets[h-1].cChannel.edit({ name: `${h}-ticket-${tickets[h-1].authorTag}` })
+              }
+           }
        }
+       break;
+     }
 
          if(!typeof currentTicket==='number' && !(currentTicket%1)===0) {
            msg.channel.send("Argument is not an integer")
@@ -264,13 +304,19 @@ bot.on('message', msg => {
        }
          break;
 
-        /* case "clearall":
+        case "clearall":
 
          if (!msg.member.hasPermission('MANAGE_MESSAGES')) {
            msg.channel.send('You do not have permission to do this!')
            return;
          }
          var logsRemoved = tickets.length
+         var tn = 0
+
+         while (tn != tickets.length) {
+            tickets[tn].cChannel.delete('Clear all command')
+            tn = tn + 1
+         }
          tickets = [];
          msg.channel.send("Cleared all tickets")
 
@@ -285,7 +331,7 @@ bot.on('message', msg => {
 
          logsChannel.send(embedClearLog)
 
-         break;*/
+         break;
 
          case "log":
          if (!msg.member.hasPermission('MANAGE_MESSAGES')) {
@@ -301,7 +347,15 @@ bot.on('message', msg => {
 })
 
 bot.on('channelCreate', channel => {
-  var closeChan = channel.name.substr(1);
+
+  var ticketNumCheck = channel.name.charAt(1);
+
+  if (ticketNumCheck != "-") {
+    closeChan = channel.name.slice(2);
+  } else {
+    var closeChan = channel.name.substr(1);
+  }
+
   if (!closeChan.startsWith("-ticket-")) {return;}
 
   tickets[tickets.length-1].cChannel = channel
@@ -348,5 +402,6 @@ setInterval(function(){
   var milliseconds = (new Date).getTime();
     console.log(milliseconds);
 }, twentyMins)
+
 
 bot.login(process.env.BOT_TOKEN);
