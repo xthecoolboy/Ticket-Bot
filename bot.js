@@ -363,7 +363,7 @@ bot.on('channelCreate', channel => {
   channel.overwritePermissions(channel.guild.roles.find(role => role.name === "@everyone"), {
      'VIEW_CHANNEL': false,                   'SEND_MESSAGES': false
   });
-  channel.overwritePermissions(channel.guild.roles.find(role => role.name === "Support Team"), {
+  channel.overwritePermissions(channel.guild.roles.find(role => role.name === "lol"), {
       'VIEW_CHANNEL': true,                   'SEND_MESSAGES': true,
   });
 
