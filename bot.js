@@ -25,7 +25,7 @@ function getRandomColor() {
   return color;
 }
 
-var prefix = "-"
+var prefix = ">>"
 
 bot.on('message', message => {
   var args = message.content.substring(prefix.length).split(" ");
